@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Java Plane Fitting</string>
+    <string name="app_name_long">Java Plane Fitting Example</string>
+    <string name="exception_out_of_date">"Tango service outdated!"</string>
+    <string name="failed_measurement">Failed to fit plane</string>
+    <string name="failed_permissions">Permissions required!</string>
+    <string name="preference_file_key">preferences</string>
+    <string name="adf_list_title">Local ADF Files</string>
+    <string name="OK">OK</string>
+    <string name="no_adfs">No local ADF files, please create one</string>
+    <string name="arealearning_permission_error">No Area Learning Permission</string>
+</resources>
