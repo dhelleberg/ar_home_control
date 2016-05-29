@@ -21,6 +21,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
@@ -51,11 +52,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 
 public class SetupActivity extends AppCompatActivity implements View.OnTouchListener {
     private static final String TAG = SetupActivity.class.getSimpleName();
     private static final int INVALID_TEXTURE_ID = 0;
+    public static final double MOVE_STEP = 0.05;
+    private static final double SIZE_STEP = 0.05;
 
     private ARRenderer renderer;
     private TangoCameraIntrinsics mIntrinsics;
@@ -73,6 +77,7 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
     TangoUxLayout uxLayout;
 
 
+
     // Texture rendering related fields
     // NOTE: Naming indicates which thread is in charge of updating this variable
     private int mConnectedTextureIdGlThread = INVALID_TEXTURE_ID;
@@ -83,6 +88,7 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
             TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
             TangoPoseData.COORDINATE_FRAME_DEVICE);
     private TangoUx tangoUx;
+    private boolean addMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +148,7 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
                         connectRenderer();
                         mIsConnected = true;
                     } catch (TangoOutOfDateException e) {
-                         Log.e(TAG, getString(R.string.exception_out_of_date), e);
+                        Log.e(TAG, getString(R.string.exception_out_of_date), e);
                     }
                 }
             });
@@ -258,7 +264,7 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
                     if (mRgbTimestampGlThread > mCameraPoseTimestamp) {
                         // Calculate the device pose at the camera frame update time.
                         TangoPoseData lastFramePose = mTango.getPoseAtTime(mRgbTimestampGlThread,
-                            FRAME_PAIR);
+                                FRAME_PAIR);
                         if (lastFramePose.statusCode == TangoPoseData.POSE_VALID) {
                             // Update the camera pose from the renderer
                             renderer.updateRenderCameraPose(lastFramePose, mExtrinsics);
@@ -311,36 +317,38 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
 
     @Override
     public boolean onTouch(View view, MotionEvent motionEvent) {
-        if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-            // Calculate click location in u,v (0;1) coordinates.
-            float u = motionEvent.getX() / view.getWidth();
-            float v = motionEvent.getY() / view.getHeight();
+        if(addMode) {
+            if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                // Calculate click location in u,v (0;1) coordinates.
+                float u = motionEvent.getX() / view.getWidth();
+                float v = motionEvent.getY() / view.getHeight();
 
-            try {
-                // Fit a plane on the clicked point using the latest poiont cloud data
-                // Synchronize against concurrent access to the RGB timestamp in the OpenGL thread
-                // and a possible service disconnection due to an onPause event.
-                TangoPoseData planeFitPose;
-                synchronized (this) {
-                    planeFitPose = doFitPlane(u, v, mRgbTimestampGlThread);
+                try {
+                    // Fit a plane on the clicked point using the latest poiont cloud data
+                    // Synchronize against concurrent access to the RGB timestamp in the OpenGL thread
+                    // and a possible service disconnection due to an onPause event.
+                    TangoPoseData planeFitPose;
+                    synchronized (this) {
+                        planeFitPose = doFitPlane(u, v, mRgbTimestampGlThread);
+                    }
+
+                    if (planeFitPose != null) {
+                        // Update the position of the rendered cube to the pose of the detected plane
+                        // This update is made thread safe by the renderer
+                        renderer.updateObjectPose(planeFitPose);
+                    }
+
+                } catch (TangoException t) {
+                    Toast.makeText(getApplicationContext(),
+                            R.string.failed_measurement,
+                            Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, getString(R.string.failed_measurement), t);
+                } catch (SecurityException t) {
+                    Toast.makeText(getApplicationContext(),
+                            R.string.failed_permissions,
+                            Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, getString(R.string.failed_permissions), t);
                 }
-
-                if (planeFitPose != null) {
-                    // Update the position of the rendered cube to the pose of the detected plane
-                    // This update is made thread safe by the renderer
-                    renderer.updateObjectPose(planeFitPose);
-                }
-
-            } catch (TangoException t) {
-                Toast.makeText(getApplicationContext(),
-                        R.string.failed_measurement,
-                        Toast.LENGTH_SHORT).show();
-                Log.e(TAG, getString(R.string.failed_measurement), t);
-            } catch (SecurityException t) {
-                Toast.makeText(getApplicationContext(),
-                        R.string.failed_permissions,
-                        Toast.LENGTH_SHORT).show();
-                Log.e(TAG, getString(R.string.failed_permissions), t);
             }
         }
         return true;
@@ -389,4 +397,76 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
         return super.onCreateOptionsMenu(menu);
     }
 
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.d(TAG, "onOptionsItemSelected");
+        switch (item.getItemId()) {
+            case R.id.menu_add:
+                startAddMode();
+                return true;
+            case R.id.menu_ok:
+                addItem();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+
+    }
+
+    private void addItem() {
+        addMode = false;
+        invalidateOptionsMenu();
+    }
+
+    private void startAddMode() {
+        addMode = true;
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem item = menu.findItem(R.id.menu_add);
+        item.setVisible(!addMode);
+
+        item = menu.findItem(R.id.menu_ok);
+        item.setVisible(addMode);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @OnClick({R.id.ib_up, R.id.ib_down, R.id.ib_left, R.id.ib_right,
+            R.id.ib_height_minus, R.id.ib_height_minus_plus,
+            R.id.ib_width_minus, R.id.ib_width_plus})
+    public void handleAdjustClicks(View view) {
+        Log.d(TAG, "handle click: "+view.toString());
+
+        switch (view.getId()) {
+            case R.id.ib_up:
+                renderer.adjustPosition(-MOVE_STEP, 0);
+                break;
+            case R.id.ib_down:
+                renderer.adjustPosition(MOVE_STEP, 0);
+                break;
+            case R.id.ib_left:
+                renderer.adjustPosition(0, MOVE_STEP);
+                break;
+            case R.id.ib_right:
+                renderer.adjustPosition(0, -MOVE_STEP);
+                break;
+
+            case R.id.ib_height_minus:
+                renderer.adjustSize(0, -SIZE_STEP);
+                break;
+            case R.id.ib_height_minus_plus:
+                renderer.adjustSize(0, SIZE_STEP);
+                break;
+            case R.id.ib_width_minus:
+                renderer.adjustSize(-SIZE_STEP, 0);
+                break;
+            case R.id.ib_width_plus:
+                renderer.adjustSize(SIZE_STEP, 0);
+                break;
+        }
+    }
 }

@@ -25,16 +25,14 @@ import com.projecttango.rajawali.DeviceExtrinsics;
 import com.projecttango.rajawali.Pose;
 import com.projecttango.rajawali.ScenePoseCalculator;
 
-import org.rajawali3d.Object3D;
 import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.materials.methods.DiffuseMethod;
 import org.rajawali3d.materials.textures.ATexture;
 import org.rajawali3d.materials.textures.StreamingTexture;
-import org.rajawali3d.materials.textures.Texture;
 import org.rajawali3d.math.Matrix4;
 import org.rajawali3d.math.vector.Vector3;
-import org.rajawali3d.primitives.Cube;
+import org.rajawali3d.primitives.Plane;
 import org.rajawali3d.primitives.ScreenQuad;
 import org.rajawali3d.renderer.RajawaliRenderer;
 
@@ -49,9 +47,15 @@ public class ARRenderer extends RajawaliRenderer {
     private ATexture mTangoCameraTexture;
     private boolean mSceneCameraConfigured;
 
-    private Object3D mObject;
+    private Plane mObject;
     private Pose mObjectPose;
     private boolean mObjectPoseUpdated = false;
+    private double upDown;
+    private double leftRight;
+    private boolean positionUpdate = false;
+    private boolean scaleUpdate = false;
+    private double scaleX;
+    private double scaleY;
 
     public ARRenderer(Context context) {
         super(context);
@@ -86,22 +90,18 @@ public class ARRenderer extends RajawaliRenderer {
         // Set-up a material: green with application of the light and
         // instructions.
         Material material = new Material();
-        material.setColor(0xff009900);
-        try {
-            Texture t = new Texture("instructions", R.drawable.instructions);
-            material.addTexture(t);
-        } catch (ATexture.TextureException e) {
-            e.printStackTrace();
-        }
-        material.setColorInfluence(0.1f);
+        material.setColor(0xAA009900);
         material.enableLighting(true);
         material.setDiffuseMethod(new DiffuseMethod.Lambert());
 
         // Build a Cube and place it initially in the origin.
-        mObject = new Cube(CUBE_SIDE_LENGTH);
+        mObject = new Plane(1f, 1f, 1,1);
         mObject.setMaterial(material);
         mObject.setPosition(0, 0, -3);
         mObject.setRotation(Vector3.Axis.Z, 180);
+        mObject.setDoubleSided(false);
+        mObject.setTransparent(true);
+
         getCurrentScene().addChild(mObject);
     }
 
@@ -116,8 +116,18 @@ public class ARRenderer extends RajawaliRenderer {
                 mObject.setOrientation(mObjectPose.getOrientation());
                 // Move it forward by half of the size of the cube to make it
                 // flush with the plane surface.
-                mObject.moveForward(CUBE_SIDE_LENGTH / 2.0f);
+//                mObject.moveForward(CUBE_SIDE_LENGTH / 2.0f);
                 mObjectPoseUpdated = false;
+            }
+            if(positionUpdate) {
+                mObject.moveUp(upDown);
+                mObject.moveRight(leftRight);
+                positionUpdate = false;
+            }
+            if(scaleUpdate) {
+                mObject.setScaleX( mObject.getScaleX() + scaleX);
+                mObject.setScaleY( mObject.getScaleY() + scaleY);
+                scaleUpdate = false;
             }
         }
 
@@ -189,5 +199,19 @@ public class ARRenderer extends RajawaliRenderer {
     @Override
     public void onTouchEvent(MotionEvent event) {
 
+    }
+
+    public void adjustPosition(double updown, double leftright) {
+        Log.d(TAG, "adjustPosition upDown: "+updown+ " leftRight: "+leftright);
+        this.upDown = updown;
+        this.leftRight = leftright;
+        this.positionUpdate = true;
+    }
+
+    public void adjustSize(double width, double height) {
+        Log.d(TAG, "adjustScale width "+width+" height: "+height);
+        this.scaleX = width;
+        this.scaleY = height;
+        this.scaleUpdate = true;
     }
 }

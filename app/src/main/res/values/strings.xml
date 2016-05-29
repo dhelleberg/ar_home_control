@@ -10,4 +10,6 @@
     <string name="OK">OK</string>
     <string name="no_adfs">No local ADF files, please create one</string>
     <string name="arealearning_permission_error">No Area Learning Permission</string>
+    <string name="menu_ok">OK</string>
+    <string name="menu_add">Add</string>
 </resources>
