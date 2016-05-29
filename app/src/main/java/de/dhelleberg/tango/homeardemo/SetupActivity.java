@@ -16,10 +16,11 @@
 
 package de.dhelleberg.tango.homeardemo;
 
-import android.app.Activity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
@@ -52,7 +53,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 
 
-public class SetupActivity extends Activity implements View.OnTouchListener {
+public class SetupActivity extends AppCompatActivity implements View.OnTouchListener {
     private static final String TAG = SetupActivity.class.getSimpleName();
     private static final int INVALID_TEXTURE_ID = 0;
 
@@ -88,10 +89,15 @@ public class SetupActivity extends Activity implements View.OnTouchListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setup);
         ButterKnife.bind(this);
+
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
         tangoUx = new TangoUx(this);
         renderer = new ARRenderer(this);
         mainSurfaceView.setSurfaceRenderer(renderer);
         mainSurfaceView.setOnTouchListener(this);
+        mainSurfaceView.setZOrderOnTop(false);
         pointCloudManager = new TangoPointCloudManager();
         tangoUx.setLayout(uxLayout);
     }
@@ -375,4 +381,12 @@ public class SetupActivity extends Activity implements View.OnTouchListener {
 
         return planeFitPose;
     }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.setup_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
 }
