@@ -6,32 +6,32 @@
 
 
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_up"
         android:src="@drawable/ic_expand_less_black_24dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"  />
 
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_left"
         android:src="@drawable/ic_chevron_left_black_24dp"
         android:layout_below="@+id/ib_up"
         android:layout_alignParentStart="true" />
 
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_right"
         android:src="@drawable/ic_chevron_right_black_24dp"
         android:layout_below="@+id/ib_up"
         android:layout_alignParentEnd="true" />
 
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_down"
         android:src="@drawable/ic_expand_more_black_24dp"
         android:layout_below="@+id/ib_up"
@@ -39,24 +39,24 @@
 
 
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_width_plus"
         android:src="@drawable/ic_add_black_24dp"
         android:layout_below="@+id/ib_left"
         android:layout_toRightOf="@+id/ib_width_minus"
          />
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_width_minus"
         android:src="@drawable/ic_remove_black_24dp"
         android:layout_below="@+id/ib_left"
         android:layout_alignParentStart="true" />
 
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_height_minus"
         android:src="@drawable/ic_remove_black_24dp"
         android:layout_below="@+id/ib_left"
@@ -64,8 +64,8 @@
 
 
     <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/buttonwidth"
+        android:layout_height="@dimen/buttonheight"
         android:id="@+id/ib_height_minus_plus"
         android:src="@drawable/ic_add_black_24dp"
         android:layout_below="@+id/ib_height_minus"

@@ -38,16 +38,26 @@ import com.google.atap.tangoservice.TangoException;
 import com.google.atap.tangoservice.TangoOutOfDateException;
 import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.projecttango.rajawali.DeviceExtrinsics;
 import com.projecttango.rajawali.ScenePoseCalculator;
 import com.projecttango.tangosupport.TangoPointCloudManager;
 import com.projecttango.tangosupport.TangoSupport;
 import com.projecttango.tangosupport.TangoSupport.IntersectionPointPlaneModelPair;
 
+import org.rajawali3d.primitives.Plane;
 import org.rajawali3d.scene.ASceneFrameCallback;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import butterknife.BindView;
@@ -89,6 +99,8 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
             TangoPoseData.COORDINATE_FRAME_DEVICE);
     private TangoUx tangoUx;
     private boolean addMode = false;
+    private Gson gson;
+    private List<Item> items = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,13 +111,18 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        gson = gsonBuilder.create();
+        readItems();
+
         tangoUx = new TangoUx(this);
-        renderer = new ARRenderer(this);
+        renderer = new ARRenderer(this, items);
         mainSurfaceView.setSurfaceRenderer(renderer);
         mainSurfaceView.setOnTouchListener(this);
         mainSurfaceView.setZOrderOnTop(false);
         pointCloudManager = new TangoPointCloudManager();
         tangoUx.setLayout(uxLayout);
+
     }
 
     @Override
@@ -209,8 +226,13 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
             @Override
             public void onTangoEvent(TangoEvent event) {
                 if (tangoUx != null) {
-                    tangoUx.updateTangoEvent(event);
+                    if (event.eventKey.equals(TangoEvent.DESCRIPTION_FISHEYE_OVER_EXPOSED)) {
+                        // handle the Fisheye camera issue
+                    }
+                    else
+                        tangoUx.updateTangoEvent(event);
                 }
+
             }
         });
 
@@ -418,11 +440,51 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
     private void addItem() {
         addMode = false;
         invalidateOptionsMenu();
+
+        Log.d(TAG, "saving item");
+        //saving current item
+        Item currentItem = new Item();
+        Plane currentObject = renderer.getCurrentEditObject();
+        currentItem.scale_x = currentObject.getScaleX();
+        currentItem.scale_y = currentObject.getScaleY();
+        currentItem.pos_x = currentObject.getX();
+        currentItem.pos_y = currentObject.getY();
+        currentItem.pos_z = currentObject.getZ();
+
+        currentItem.quat_w = currentObject.getOrientation().w;
+        currentItem.quat_x = currentObject.getOrientation().x;
+        currentItem.quat_y = currentObject.getOrientation().y;
+        currentItem.quat_z = currentObject.getOrientation().z;
+
+        items.add(currentItem);
+        try {
+            Writer writer = new OutputStreamWriter(openFileOutput("data.json",0));
+            gson.toJson(items, writer);
+            writer.flush();
+            Log.d(TAG, "saving:"+gson.toJson(currentItem));
+            Toast.makeText(this, "saved object", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e(TAG, "could not write object", e);
+        }
+
+
     }
 
     private void startAddMode() {
         addMode = true;
         invalidateOptionsMenu();
+    }
+
+    private void readItems() {
+        Reader reader = null;
+        try {
+            reader = new InputStreamReader(openFileInput("data.json"));
+            items = gson.fromJson(reader, new TypeToken<List<Item>>(){}.getType());
+
+        } catch (FileNotFoundException e) {
+
+            Log.e(TAG, "could not read object", e);
+        }
     }
 
     @Override
@@ -469,4 +531,5 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
                 break;
         }
     }
+
 }

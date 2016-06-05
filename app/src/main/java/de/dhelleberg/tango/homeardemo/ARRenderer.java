@@ -31,10 +31,13 @@ import org.rajawali3d.materials.methods.DiffuseMethod;
 import org.rajawali3d.materials.textures.ATexture;
 import org.rajawali3d.materials.textures.StreamingTexture;
 import org.rajawali3d.math.Matrix4;
+import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.primitives.Plane;
 import org.rajawali3d.primitives.ScreenQuad;
 import org.rajawali3d.renderer.RajawaliRenderer;
+
+import java.util.List;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -42,6 +45,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class ARRenderer extends RajawaliRenderer {
     private static final float CUBE_SIDE_LENGTH = 0.5f;
     private static final String TAG = ARRenderer.class.getSimpleName();
+    private final List<Item> itemlist;
 
     // Augmented Reality related fields
     private ATexture mTangoCameraTexture;
@@ -56,9 +60,12 @@ public class ARRenderer extends RajawaliRenderer {
     private boolean scaleUpdate = false;
     private double scaleX;
     private double scaleY;
+    private Plane newPlane = null;
+    private Material planeMaterial;
 
-    public ARRenderer(Context context) {
+    public ARRenderer(Context context, List<Item> itemlist) {
         super(context);
+        this.itemlist = itemlist;
     }
 
     @Override
@@ -87,22 +94,36 @@ public class ARRenderer extends RajawaliRenderer {
         light.setPosition(3, 2, 4);
         getCurrentScene().addLight(light);
 
-        // Set-up a material: green with application of the light and
+        // Set-up a planeMaterial: green with application of the light and
         // instructions.
-        Material material = new Material();
-        material.setColor(0xAA009900);
-        material.enableLighting(true);
-        material.setDiffuseMethod(new DiffuseMethod.Lambert());
+        planeMaterial = new Material();
+        planeMaterial.setColor(0xAA009900);
+        planeMaterial.enableLighting(true);
+        planeMaterial.setDiffuseMethod(new DiffuseMethod.Lambert());
 
         // Build a Cube and place it initially in the origin.
         mObject = new Plane(1f, 1f, 1,1);
-        mObject.setMaterial(material);
         mObject.setPosition(0, 0, -3);
         mObject.setRotation(Vector3.Axis.Z, 180);
+        mObject.setMaterial(planeMaterial);
         mObject.setDoubleSided(false);
         mObject.setTransparent(true);
 
         getCurrentScene().addChild(mObject);
+
+
+        //add all items
+        for (int i = 0; i < itemlist.size(); i++) {
+            Item item = itemlist.get(i);
+            Plane plane = new Plane(1f, 1f, 1, 1);
+            plane.setPosition(item.pos_x, item.pos_y, item.pos_z);
+            plane.setScale(item.scale_x, item.scale_y, 1);
+            plane.setOrientation(new Quaternion(item.quat_w, item.quat_x, item.quat_y, item.quat_y));
+            plane.setMaterial(planeMaterial);
+            plane.setDoubleSided(false);
+            plane.setTransparent(true);
+            getCurrentScene().addChild(plane);
+        }
     }
 
     @Override
@@ -214,4 +235,11 @@ public class ARRenderer extends RajawaliRenderer {
         this.scaleY = height;
         this.scaleUpdate = true;
     }
+
+
+    public Plane getCurrentEditObject() {
+        return mObject;
+    }
+
+
 }
