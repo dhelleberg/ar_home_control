@@ -12,4 +12,5 @@
     <string name="arealearning_permission_error">No Area Learning Permission</string>
     <string name="menu_ok">OK</string>
     <string name="menu_add">Add</string>
+    <string name="menu_edit_mode">Edit</string>
 </resources>

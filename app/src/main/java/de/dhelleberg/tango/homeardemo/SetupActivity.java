@@ -17,6 +17,7 @@
 package de.dhelleberg.tango.homeardemo;
 
 import android.os.Bundle;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -24,6 +25,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.RadioButton;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.google.atap.tango.ux.TangoUx;
@@ -65,7 +70,7 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 
-public class SetupActivity extends AppCompatActivity implements View.OnTouchListener {
+public class SetupActivity extends AppCompatActivity implements View.OnTouchListener, AdapterView.OnItemSelectedListener {
     private static final String TAG = SetupActivity.class.getSimpleName();
     private static final int INVALID_TEXTURE_ID = 0;
     public static final double MOVE_STEP = 0.05;
@@ -85,6 +90,16 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
     Toolbar toolbar;
     @BindView(R.id.tango_ux_layout)
     TangoUxLayout uxLayout;
+    @BindView(R.id.bottom_sheet)
+    View bottomSheet;
+    @BindView(R.id.editButtons)
+    View editButtons;
+    @BindView(R.id.spinner)
+    Spinner spinner;
+    @BindView(R.id.radio_light)
+    RadioButton radio_light;
+    @BindView(R.id.radio_shutter)
+    RadioButton radio_shutter;
 
 
 
@@ -101,6 +116,9 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
     private boolean addMode = false;
     private Gson gson;
     private List<Item> items = new ArrayList<>();
+    private BottomSheetBehavior<View> bottomSheetBehavior;
+    private Item currentItem = new Item();
+    private boolean editMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,6 +140,14 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
         mainSurfaceView.setZOrderOnTop(false);
         pointCloudManager = new TangoPointCloudManager();
         tangoUx.setLayout(uxLayout);
+
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.openhab_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setOnItemSelectedListener(this);
 
     }
 
@@ -430,20 +456,31 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
             case R.id.menu_ok:
                 addItem();
                 return true;
-
+            case R.id.menu_edit_mode:
+                toggleEditMode();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
 
     }
 
+    private void toggleEditMode() {
+        editMode = !editMode;
+        if(editMode)
+            editButtons.setVisibility(View.VISIBLE);
+        else
+            editButtons.setVisibility(View.GONE);
+        invalidateOptionsMenu();
+    }
+
     private void addItem() {
         addMode = false;
         invalidateOptionsMenu();
-
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
         Log.d(TAG, "saving item");
         //saving current item
-        Item currentItem = new Item();
+        currentItem = new Item();
         Plane currentObject = renderer.getCurrentEditObject();
         currentItem.scale_x = currentObject.getScaleX();
         currentItem.scale_y = currentObject.getScaleY();
@@ -455,17 +492,6 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
         currentItem.quat_x = currentObject.getOrientation().x;
         currentItem.quat_y = currentObject.getOrientation().y;
         currentItem.quat_z = currentObject.getOrientation().z;
-
-        items.add(currentItem);
-        try {
-            Writer writer = new OutputStreamWriter(openFileOutput("data.json",0));
-            gson.toJson(items, writer);
-            writer.flush();
-            Log.d(TAG, "saving:"+gson.toJson(currentItem));
-            Toast.makeText(this, "saved object", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Log.e(TAG, "could not write object", e);
-        }
 
 
     }
@@ -489,11 +515,20 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem item = menu.findItem(R.id.menu_add);
-        item.setVisible(!addMode);
+        if(editMode) {
+            MenuItem item = menu.findItem(R.id.menu_add);
+            item.setVisible(!addMode);
 
-        item = menu.findItem(R.id.menu_ok);
-        item.setVisible(addMode);
+            item = menu.findItem(R.id.menu_ok);
+            item.setVisible(addMode);
+        }
+        else {
+            MenuItem item = menu.findItem(R.id.menu_add);
+            item.setVisible(false);
+
+            item = menu.findItem(R.id.menu_ok);
+            item.setVisible(false);
+        }
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -532,4 +567,36 @@ public class SetupActivity extends AppCompatActivity implements View.OnTouchList
         }
     }
 
+    @OnClick(R.id.button_OK)
+    public void okFromBottomSheet() {
+        items.add(currentItem);
+        if(radio_light.isChecked())
+            currentItem.type = Item.TYPE.TYPE_LIGHT;
+        else if(radio_shutter.isChecked())
+            currentItem.type = Item.TYPE.TYPE_SHUTTER;
+
+        try {
+            Writer writer = new OutputStreamWriter(openFileOutput("data.json",0));
+            gson.toJson(items, writer);
+            writer.flush();
+            Log.d(TAG, "saving:"+gson.toJson(currentItem));
+            Toast.makeText(this, "saved object", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e(TAG, "could not write object", e);
+        }
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        Log.d(TAG, "Spinner selected pos: "+parent.getItemAtPosition(position));
+        currentItem.openHabID = (String) parent.getItemAtPosition(position);
+
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
 }

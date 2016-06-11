@@ -6,6 +6,11 @@ package de.dhelleberg.tango.homeardemo;
 public class Item {
 
     public String openHabID;
+    enum TYPE {
+        TYPE_LIGHT, TYPE_SHUTTER
+    }
+
+    public TYPE type;
 
     public double pos_x;
     public double pos_y;

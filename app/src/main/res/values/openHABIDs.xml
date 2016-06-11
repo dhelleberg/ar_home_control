@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="openhab_array">
+        <item>rs_Kitchen_Window_front</item>
+        <item>Light_switch_kitchen_led</item>
+        <item>Light_switch_kitchen_main</item>
+    </string-array>
+</resources>

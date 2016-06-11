@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.google.atap.tangoservice.Tango;
@@ -34,7 +33,7 @@ public class StartUpActivity extends Activity {
             intent.putExtra(Constants.EXTRA_KEY_ADF_UUID, adf_uuid);
 
         Tango tango = new Tango(this);
-        new ADFListDialog(this, tango, new ADFListDialog.CallbackListener() {
+        /*new ADFListDialog(this, tango, new ADFListDialog.CallbackListener() {
             @Override
             public void selectedADF(String uuid) {
                 Log.d(TAG, "selected ADF: "+uuid);
@@ -45,8 +44,8 @@ public class StartUpActivity extends Activity {
                 }
 
             }
-        }).show();
-
+        }).show();*/
+        startActivity(intent);
     }
 
     /**
